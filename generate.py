@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Plex Free Live TV – M3U + XMLTV generator
-Repo: https://github.com/BuddyChewChew/plex-alt-fast-channels
+Repo: https://github.com/demonlive-SAS/plex-fast-channels
 
 Flow:
   1. Load channels from channels.json cache (if fresh enough).
