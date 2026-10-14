@@ -57,7 +57,7 @@ EPG_DAYS            = 2                 # days of EPG to fetch (today + N-1)
 REQUEST_TIMEOUT     = 30
 
 REPO_RAW_BASE = (
-    "https://raw.githubusercontent.com/BuddyChewChew/plex-alt-fast-channels/main"
+    "https://github.com/demonlive-SAS/plex-fast-channels/tree/main"
 )
 
 # Geographic spoofing IPs – update if a region stops returning channels
@@ -287,9 +287,6 @@ def get_anonymous_token(region: str = "us") -> tuple[str | None, str | None]:
                 except ValueError:
                     pass
             elif "xml" in content_type:
-                # Plex is returning XML for this endpoint regardless of the
-                # Accept header (observed 2026-08-09) – parse it directly
-                # instead of forcing a JSON parse that will always fail.
                 try:
                     import xml.etree.ElementTree as ET
                     token = ET.fromstring(resp.text).attrib.get("authToken")
@@ -299,7 +296,6 @@ def get_anonymous_token(region: str = "us") -> tuple[str | None, str | None]:
                     time.sleep(5)
                     continue
             else:
-                # Unrecognized content-type – try JSON, then XML, as a fallback.
                 try:
                     token = resp.json().get("authToken")
                 except ValueError:
@@ -404,7 +400,6 @@ def fetch_channels_from_api(token: str, client_id: str, region: str) -> dict[str
     ip     = GEO_IPS.get(region, GEO_IPS["us"])
     genres = _fetch_genres(token, client_id, ip)
 
-    # Fallback if genre discovery fails
     if not genres:
         genres = {"all": "All", "news": "News", "sports": "Sports", "movies": "Movies"}
 
@@ -430,17 +425,14 @@ def get_channels_for_regions(regions: list[str], force_refresh: bool = False) ->
     Uses channels.json cache when fresh; only calls the Plex API when the
     cache is missing, stale, or --refresh-channels is passed.
     """
-    # --- try cache first ---
     if not force_refresh and _cache_is_fresh():
         cached = load_channels_cache()
         if cached:
-            # If all requested regions are present, use the cache entirely
             missing = [r for r in regions if r not in cached]
             if not missing:
                 logger.info("All regions served from channels.json cache.")
                 return {r: cached[r] for r in regions}
             logger.info("Cache missing regions: %s – will fetch those.", missing)
-            # Partial cache hit: reuse what we have, fetch only missing
             channels_by_region = {r: cached[r] for r in regions if r in cached}
             regions_to_fetch   = missing
         else:
@@ -454,7 +446,6 @@ def get_channels_for_regions(regions: list[str], force_refresh: bool = False) ->
         channels_by_region = {}
         regions_to_fetch   = regions
 
-    # --- fetch missing/stale regions from API ---
     for region in regions_to_fetch:
         logger.info("Fetching channel list for region=%s …", region)
         token, client_id = get_anonymous_token(region)
@@ -465,9 +456,7 @@ def get_channels_for_regions(regions: list[str], force_refresh: bool = False) ->
         if chs:
             channels_by_region[region] = chs
 
-    # --- persist updated cache ---
     if regions_to_fetch and channels_by_region:
-        # Merge with any previously cached regions that weren't in our run
         existing = load_channels_cache() or {}
         merged   = {**existing, **channels_by_region}
         save_channels_cache(merged)
@@ -496,12 +485,7 @@ def build_m3u(
     for gk, ch in sorted(channels.items(), key=lambda x: x[1].get("name", "").lower()):
         name     = _sanitize(ch.get("name", gk))
         logo     = ch.get("logo", "")
-        genres   = ch.get("genres", [])
-        if region == "all":
-            ch_region = ch.get("region", "")
-            group = REGION_NAMES.get(ch_region, ch_region.upper()) if ch_region else "Other"
-        else:
-            group = genres[0] if genres else REGION_NAMES.get(region, region.upper())
+        group    = "Fast Plex"
         plex_key = ch.get("key", "")
 
         if not plex_key:
@@ -515,7 +499,7 @@ def build_m3u(
             f'tvg-id="{gk}" '
             f'tvg-name="{name.replace(chr(34), chr(39))}" '
             f'tvg-logo="{logo}" '
-            f'group-title="{group.replace(chr(34), chr(39))}",{name}\n'
+            f'group-title="{group}",{name}\n'
         )
         lines.append(extinf)
         lines.append(stream_url + "\n")
@@ -528,17 +512,11 @@ def build_m3u(
 # ---------------------------------------------------------------------------
 
 def _parse_video_to_programme(video, grid_key: str) -> str | None:
-    """
-    Convert a single Plex <Video> element from the /grid response into an
-    XMLTV <programme> string, including title, sub-title, description,
-    category, episode numbers, rating, and artwork.
-    """
     import xml.etree.ElementTree as ET
 
     video_type = video.attrib.get("type", "").lower()
     genres = [escape(_sanitize(g.attrib.get("tag", ""))) for g in video.findall("Genre")]
 
-    # Title / subtitle
     if video_type == "movie":
         raw_title = _sanitize(video.attrib.get("title", ""))
         year      = video.attrib.get("year", "")
@@ -576,8 +554,7 @@ def _parse_video_to_programme(video, grid_key: str) -> str | None:
             p += f'<sub-title lang="en">{subtitle}</sub-title>'
         if desc:
             p += f'<desc lang="en">{desc}</desc>'
-        for genre in genres:
-            p += f'<category lang="en">{genre}</category>'
+        p += '<category lang="en">Fast Plex</category>'
         if art:
             p += f'<icon src="{art}" />'
         if orig_date:
@@ -596,7 +573,6 @@ def _parse_video_to_programme(video, grid_key: str) -> str | None:
 
 
 def _parse_video_from_json(video: dict, grid_key: str) -> str | None:
-    """Convert a Plex Video dict (JSON response) into an XMLTV <programme> string."""
     video_type = video.get("type", "").lower()
     genres     = [escape(_sanitize(g.get("tag", ""))) for g in video.get("Genre", [])]
 
@@ -635,8 +611,7 @@ def _parse_video_from_json(video: dict, grid_key: str) -> str | None:
             p += f'<sub-title lang="en">{subtitle}</sub-title>'
         if desc:
             p += f'<desc lang="en">{desc}</desc>'
-        for genre in genres:
-            p += f'<category lang="en">{genre}</category>'
+        p += '<category lang="en">Fast Plex</category>'
         if art:
             p += f'<icon src="{art}" />'
         if orig_date:
@@ -664,18 +639,10 @@ def _fetch_epg_for_channel(
     client_id: str,
     ip: str,
 ) -> str | None:
-    """
-    GET epg.provider.plex.tv/grid?channelGridKey={gk}&date={YYYY-MM-DD}
-
-    Requests JSON explicitly. Plex returns a MediaContainer with a Metadata
-    (or Video) array of programme objects. Falls back to XML parsing if needed.
-    """
     import xml.etree.ElementTree as ET
 
     grid_key = channel["gridKey"]
 
-    # Force JSON — the BASE_HEADERS Accept includes json,text,* but being
-    # explicit prevents Plex from returning an empty XML shell.
     headers = {
         **BASE_HEADERS,
         "Accept":                   "application/json",
@@ -703,7 +670,6 @@ def _fetch_epg_for_channel(
 
         ct = resp.headers.get("Content-Type", "")
 
-        # JSON path (preferred)
         if "json" in ct or raw.startswith("{"):
             try:
                 data   = resp.json()
@@ -714,7 +680,6 @@ def _fetch_epg_for_channel(
             parts = [p for v in videos for p in [_parse_video_from_json(v, grid_key)] if p]
             return "\n".join(parts) if parts else None
 
-        # XML fallback
         try:
             root   = ET.fromstring(raw)
             videos = root.findall(".//Video")
@@ -737,12 +702,10 @@ def build_epg(
     region:    str,
     days:      int = EPG_DAYS,
 ) -> str:
-    """Build XMLTV content for *region* covering *days* days."""
     ip    = GEO_IPS.get(region, GEO_IPS["us"])
     today = datetime.now(timezone.utc)
     dates = [(today + timedelta(days=d)).strftime("%Y-%m-%d") for d in range(days)]
 
-    # <channel> entries
     channel_xml: list[str] = []
     for gk, ch in channels.items():
         name = escape(_sanitize(ch.get("name", gk)))
@@ -753,7 +716,6 @@ def build_epg(
         block += "  </channel>\n"
         channel_xml.append(block)
 
-    # <programme> entries – fetched concurrently
     tasks = [(ch, date) for ch in channels.values() for date in dates]
     logger.info("  Fetching EPG: %d channels × %d days = %d requests …",
                 len(channels), days, len(tasks))
@@ -815,7 +777,6 @@ def main():
     args = parse_args()
     cleanup_output_dir()
 
-    # ── 1. Get channel metadata (cache or API) ────────────────────────────
     channels_by_region = get_channels_for_regions(
         args.regions, force_refresh=args.refresh_channels
     )
@@ -824,15 +785,8 @@ def main():
         logger.error("No channel data – aborting.")
         return
 
-    # ── 2. Per-region M3U + EPG ───────────────────────────────────────────
-    all_channels: dict[str, dict] = {}   # merged set for plex_all.*
+    all_channels: dict[str, dict] = {}
 
-    # One anonymous token, reused for every region. The token itself isn't
-    # region-specific (it's just an anonymous session credential embedded in
-    # stream/EPG URLs); geo-spoofing happens separately via X-Forwarded-For
-    # on the per-region EPG/grid requests. Fetching 15 separate tokens in a
-    # loop was hammering the token endpoint and tipping Plex into 429s
-    # partway through the run.
     token, client_id = get_anonymous_token(args.regions[0] if args.regions else "us")
     if not token:
         logger.error("Could not obtain an anonymous token – aborting.")
@@ -846,26 +800,20 @@ def main():
 
         logger.info("=== %s (%d channels) ===", region.upper(), len(channels))
 
-        # M3U  (url-tvg= header points to repo XML)
         m3u = build_m3u(channels, token, region, args.repo)
         write_playlist(f"plex_{region}.m3u", m3u)
 
-        # EPG
         if not args.no_epg:
             xml = build_epg(channels, token, client_id, region, days=args.days)
             write_playlist(f"plex_{region}.xml", xml)
 
-        # Accumulate for "all" files (first region wins for duplicate gridKeys)
         for gk, ch in channels.items():
             if gk not in all_channels:
                 all_channels[gk] = {**ch, "region": region}
 
-    # ── 3. Combined plex_all.* ────────────────────────────────────────────
     if all_channels:
         logger.info("=== Building plex_all.* (%d channels) ===", len(all_channels))
 
-        # Reuse the same token fetched in step 2 – no need to hit the
-        # token endpoint again.
         all_token, all_client_id = token, client_id
 
         if all_token:
@@ -873,9 +821,6 @@ def main():
             write_playlist("plex_all.m3u", all_m3u)
 
             if not args.no_epg:
-                # Merge per-region .xml.gz files into plex_all.xml.gz
-                # Reading from already-compressed files avoids holding everything
-                # in memory at once.
                 logger.info("Building plex_all.xml.gz from per-region files …")
                 all_out_path = os.path.join(OUTPUT_DIR, "plex_all.xml.gz")
                 seen_channel_ids: set[str] = set()
@@ -936,3 +881,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 
