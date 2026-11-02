@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-02T12:59:50.492560+00:00",
+  "generated": "2026-11-02T18:54:07.063744+00:00",
   "channels": {
     "us": {
       "66635fc0ca7b22f4c3a2d743": {
@@ -615,10 +615,10 @@
       },
       "63c1e47ef0f132afc3afbab2": {
         "id": "6a1610bebdf296985fd95603-63c1e47ef0f132afc3afbab2",
-        "slug": "lifetime-movie-favorites",
+        "slug": "lifetime-holiday-movie-favorites",
         "gridKey": "63c1e47ef0f132afc3afbab2",
-        "name": "Lifetime Movie Favorites",
-        "logo": "https://provider-static.plex.tv/epg/cms/production/64ce3127-c379-4c7f-b576-7a4c167c8311/LTMF_channel_logo_4c_1500x1000rdx.png",
+        "name": "Lifetime Holiday Movie Favorites",
+        "logo": "https://provider-static.plex.tv/epg/cms/production/7d61d917-bcb1-48d9-ac16-38a7a6a9ca1b/Lifetime_Holiday_Movie_Favorites_channel_logo_4c_1500x1000.png",
         "callSign": "",
         "key": "/library/parts/6a1610bebdf296985fd95603-63c1e47ef0f132afc3afbab2.m3u8",
         "genres": [
@@ -6036,10 +6036,10 @@
       },
       "64b7139c8ec13d5dcb7e6bb2": {
         "id": "6a1610bebdf296985fd95603-64b7139c8ec13d5dcb7e6bb2",
-        "slug": "places-and-spaces",
+        "slug": "the-great-christmas-light-fight-on-places-and-spaces",
         "gridKey": "64b7139c8ec13d5dcb7e6bb2",
-        "name": "Places & Spaces",
-        "logo": "https://provider-static.plex.tv/epg/cms/production/93b7eade-14c9-434b-822b-f86ed372481f/PLEX_P_S_LOGOFORDARKBKG_1500X1500_REV_-_Patty_Gopez.png",
+        "name": "The Great Christmas Light Fight on Places & Spaces",
+        "logo": "https://provider-static.plex.tv/epg/cms/production/a19d1fe4-a6f3-4f34-b203-4dd55ea1bd9a/TheGreatChristmasLightFight_P_S_Logocolor_white_colorRDX.png",
         "callSign": "",
         "key": "/library/parts/6a1610bebdf296985fd95603-64b7139c8ec13d5dcb7e6bb2.m3u8",
         "genres": [
@@ -15296,9 +15296,9 @@
       },
       "69bad1dfc68ea9badd9faf5a": {
         "id": "64305451fc3be5947773c339-69bad1dfc68ea9badd9faf5a",
-        "slug": "lifetime-movies-2",
+        "slug": "christmas-movies-by-lifetime",
         "gridKey": "69bad1dfc68ea9badd9faf5a",
-        "name": "Lifetime Movies",
+        "name": "Christmas Movies by Lifetime",
         "logo": "https://provider-static.plex.tv/epg/cms/production/18bab13d-afa7-4df6-8149-c8ddef9dd212/Lifetime_Movies_channel_logo_white_1500x1000.png",
         "callSign": "",
         "key": "/library/parts/64305451fc3be5947773c339-69bad1dfc68ea9badd9faf5a.m3u8",
